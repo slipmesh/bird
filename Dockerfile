@@ -3,8 +3,12 @@
 # `scratch` image - meant to run as a sidecar container next to slipmesh-operators' `router`,
 # sharing an emptyDir volume for the config file and control socket.
 #
-# Source is cloned from gitlab.nic.cz (BIRD's real upstream GitLab, not a mirror of dubious
-# provenance) - bird.nic.cz's own download links return 403, gitlab.nic.cz doesn't.
+# Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
+# organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
+# commit hash for v2.19.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
+# GitHub Actions' own IP range (confirmed by a real CI run failing there while working fine
+# locally) - bird.nic.cz's tarball downloads 403 unconditionally, gitlab.nic.cz apparently blocks
+# at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
 # guessed). v2.19.2 is the latest 2.x release and the version verified against the RFC 8950
@@ -26,7 +30,7 @@ RUN apk add --no-cache \
         build-base musl-dev linux-headers \
         git m4 perl autoconf flex bison \
         ncurses-static readline-static \
-    && git clone https://gitlab.nic.cz/labs/bird.git /src \
+    && git clone https://github.com/CZ-NIC/bird.git /src \
     && git -C /src checkout "$BIRD_REV" \
     && cd /src \
     && for p in /patches/*.patch; do git apply "$p"; done \
