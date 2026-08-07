@@ -42,8 +42,8 @@ postprocessors = [
 conventional_commits = true
 filter_unconventional = true
 
-# Matches tags like v0.2.2
-tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+(-[a-z0-9]+)?"
+# Matches tags like v0.2.2 or v0.1.0+bird2.19.2
+tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+(\\+[a-zA-Z0-9.]+)?"
 
 commit_parsers = [
   { message = "^feat", group = "Added ✨" },
