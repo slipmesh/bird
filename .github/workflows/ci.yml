@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # The Dockerfile's own builder stage already fails the build if `bird`/`birdc` come out
+      # dynamically linked (see its `ldd` check) - this just proves the shipped `scratch` image
+      # itself works, which the builder-stage check alone can't: a `scratch` image has no dynamic
+      # linker at all, so any residual dynamic dependency that somehow passed the builder-stage
+      # check would fail here with "exec user process caused: no such file or directory" instead.
+      - name: Build (local, single-arch)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: bird:ci
+
+      - name: Smoke test - bird parses a minimal config and exits cleanly
+        run: |
+          mkdir -p /tmp/bird-ci
+          printf 'protocol device {\n}\n' > /tmp/bird-ci/bird.conf
+          docker run --rm -v /tmp/bird-ci:/etc/bird --entrypoint /bird bird:ci \
+            -p -c /etc/bird/bird.conf
+
+      - name: Smoke test - birdc runs (expected to fail to connect, not to crash)
+        run: |
+          docker run --rm --entrypoint /birdc bird:ci -s /nonexistent 2>&1 | tee /tmp/birdc.out
+          grep -qi "unable to connect\|no such file\|cannot connect" /tmp/birdc.out

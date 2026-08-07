@@ -1,0 +1,20 @@
+# ─────────────────────────────────────────────
+# 📝 Markdown documentation
+*.md diff=markdown
+README.md linguist-documentation
+
+# ⚙️ Git-cliff config
+cliff.toml linguist-generated
+
+# 🧾 Changelog output
+CHANGELOG.md linguist-generated
+
+# 📄 Common structured text files
+*.json diff=default
+*.toml diff=default
+*.yml  diff=default
+*.yaml diff=default
+
+# 💡 Ensure consistent line endings (LF only)
+*.sh  text eol=lf
+Dockerfile text eol=lf
