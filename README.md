@@ -44,29 +44,19 @@ binaries carry a `PT_INTERP` pointing at `ld-musl-*.so.1` for self-relocation, w
 misreports as a real dynamic dependency even though the binary runs standalone; verified by
 actually running the built `scratch` image's binaries).
 
-## Patches
-
-`patches/` carries modifications on top of vanilla upstream BIRD, applied via `git apply` during
-the Docker build (see `Dockerfile`) - disclosed here per GPLv2 §2(a)'s requirement to mark changed
-files and the date of the change:
-
-- `0001-wait-for-config-file-to-appear.patch` (2026-08-07, `sysdep/unix/main.c`): on startup, if
-  the config file doesn't exist yet, BIRD normally calls `die()` immediately. This patch instead
-  logs once and polls until it appears, then proceeds normally - written for exactly this repo's
-  own sidecar use case, where `router` (a separate container in the same pod) writes the config
-  to a shared `emptyDir` and may not have done so yet by the time this container starts. Verified:
-  builds cleanly, and a patched `bird` given a missing config waits (confirmed via
-  `/proc/<pid>/wchan` and a live `birdc` connection after the file appeared) instead of exiting.
-
 ## Versioning
 
-Tags (`vX.Y.Z`) follow this repo's own release cadence, independent of `slipmesh/operators`'
-version - bumping BIRD here doesn't imply a `router` release, and vice versa.
+Tags (`vX.Y.Z[+birdA.B.C]`) follow this repository's own cadence: bumping BIRD here implies
+nothing about any consumer's version, and vice versa.
 
 ## License
 
-BIRD itself is GPLv2-or-later (see `COPYING`, copied verbatim from the FSF). This repo's own
-additions (`Dockerfile`, CI, and the patches in `patches/`) are distributed under the same terms,
-as required for a modified GPL work. `slipmesh/operators` and `slipmesh/helm` are separate
-programs communicating with BIRD over a Unix socket/subprocess boundary, not linked with it, and
-keep their own MIT/Apache-2.0 licensing unaffected by this.
+BIRD itself is GPLv2-or-later (see `COPYING`, copied verbatim from the FSF). Distributing the
+image distributes BIRD binaries, so §3's obligation to offer the corresponding source applies as
+it does to any GPL binary; what building upstream verbatim removes is §2(a)'s duty to mark
+changed files, because there are none. The exact source is `BIRD_REV` in the `Dockerfile`,
+fetched from the upstream repository named there.
+
+This repository's own additions - the `Dockerfile` and CI - are distributed under the same terms.
+A program that talks to BIRD over its control socket or as a subprocess is not linked with it and
+keeps its own licensing.
