@@ -30,7 +30,7 @@ not through `birdc`).
 Built from `github.com/CZ-NIC/bird`, an official mirror of the real upstream
 (`gitlab.nic.cz/labs/bird`) maintained by the same organization - verified byte-identical (same
 commit per tag). Used instead of cloning gitlab.nic.cz directly because that 403s from GitHub
-Actions' own IP range specifically (confirmed by a real CI failure), separately from
+Actions' own IP range specifically, separately from
 `bird.nic.cz`'s tarball downloads 403ing unconditionally for everyone. Pinned to a tag (see
 `BIRD_REV` in the `Dockerfile`), currently `v2.19.2` - the latest 2.x release, and the version
 verified against the RFC 8950 (extended next-hop) underlay redesign tracked in operators#8.

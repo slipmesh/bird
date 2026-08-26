@@ -6,8 +6,8 @@
 # Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
 # organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
 # commit hash for v2.19.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
-# GitHub Actions' own IP range (confirmed by a real CI run failing there while working fine
-# locally) - bird.nic.cz's tarball downloads 403 unconditionally, gitlab.nic.cz apparently blocks
+# GitHub Actions' own IP range - bird.nic.cz's tarball downloads 403 unconditionally, and
+# gitlab.nic.cz apparently blocks
 # at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
