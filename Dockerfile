@@ -12,7 +12,7 @@
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
 # guessed). v2.19.2 is the latest 2.x release and the version verified against the RFC 8950
-# (extended next-hop) underlay redesign (operators#8) on a real testbed.
+# (extended next-hop) underlay redesign on a real testbed.
 #
 # --disable-libssh: only used by BIRD's optional RPKI-over-SSH transport, which this project
 # doesn't use (no RPKI protocol anywhere in slipmesh's BIRD config) - dropping it removes libssh

@@ -5,7 +5,7 @@ A fully statically-linked `bird`/`birdc` build, packaged as a minimal `scratch` 
 
 ## Why this exists
 
-[slipmesh/operators](https://github.com/slipmesh/operators)' `router` operator renders BIRD's
+The `router` operator this was built for renders BIRD's
 config and talks to its control socket, but doesn't build BIRD itself - it currently installs
 BIRD from Alpine's `bird2` package inside the same container. This repo exists to run BIRD as a
 separate sidecar container in the same pod instead:
@@ -18,8 +18,8 @@ separate sidecar container in the same pod instead:
   already do, instead of needing a real Alpine userland just to hold a dynamically-linked `bird2`
   package.
 
-The two containers share a pod-scoped `emptyDir` volume for the config file and control socket -
-see [slipmesh/operators#8](https://github.com/slipmesh/operators/issues/8) for the full design.
+The two containers share a pod-scoped `emptyDir` volume for the config file and the control
+socket.
 
 ## What's in the image
 
@@ -33,7 +33,7 @@ commit per tag). Used instead of cloning gitlab.nic.cz directly because that 403
 Actions' own IP range specifically, separately from
 `bird.nic.cz`'s tarball downloads 403ing unconditionally for everyone. Pinned to a tag (see
 `BIRD_REV` in the `Dockerfile`), currently `v2.19.2` - the latest 2.x release, and the version
-verified against the RFC 8950 (extended next-hop) underlay redesign tracked in operators#8.
+verified against the RFC 8950 (extended next-hop) underlay redesign.
 
 `--disable-libssh` at configure time: BIRD's only use for libssh is RPKI-over-SSH transport, which
 this project's BIRD config never uses. `ncurses-static`/`readline-static` (Alpine packages) let
