@@ -51,8 +51,12 @@ nothing about any consumer's version, and vice versa.
 
 ## License
 
-BIRD itself is GPLv2-or-later (see `COPYING`, copied verbatim from the FSF) and is built here
-unmodified, so no source-disclosure obligation attaches beyond shipping that notice. This
-repository's own additions - the `Dockerfile` and CI - are distributed under the same terms.
+BIRD itself is GPLv2-or-later (see `COPYING`, copied verbatim from the FSF). Distributing the
+image distributes BIRD binaries, so §3's obligation to offer the corresponding source applies as
+it does to any GPL binary; what building upstream verbatim removes is §2(a)'s duty to mark
+changed files, because there are none. The exact source is `BIRD_REV` in the `Dockerfile`,
+fetched from the upstream repository named there.
+
+This repository's own additions - the `Dockerfile` and CI - are distributed under the same terms.
 A program that talks to BIRD over its control socket or as a subprocess is not linked with it and
 keeps its own licensing.
