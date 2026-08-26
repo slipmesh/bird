@@ -1,7 +1,7 @@
 # Builds a fully statically-linked `bird`/`birdc` (no libc/ncurses/readline/libssh runtime
 # dependencies) from BIRD's own upstream source, and packages just those two binaries into a
-# `scratch` image - meant to run as a sidecar container next to slipmesh-operators' `router`,
-# sharing an emptyDir volume for the config file and control socket.
+# `scratch` image - meant to run as a sidecar next to whatever renders BIRD's config, sharing a
+# volume for the config file and the control socket.
 #
 # Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
 # organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
@@ -17,15 +17,15 @@
 # --disable-libssh: only used by BIRD's optional RPKI-over-SSH transport, which this project
 # doesn't use (no RPKI protocol anywhere in slipmesh's BIRD config) - dropping it removes libssh
 # from the dependency list entirely rather than needing to statically link it too.
-# --enable-client stays at its default (yes): birdc is kept for manual `kubectl exec` debugging,
-# even though slipmesh-operators' router talks to the control socket directly, not via birdc.
-# ncurses-static/readline-static provide the .a archives birdc's build links against instead of
-# the normal shared libncursesw.so/libreadline.so.
-# patches/ carries our own modifications on top of vanilla upstream BIRD (GPLv2-or-later - see
-# COPYING and README.md's "Patches" section for the disclosure this license requires).
+# --enable-client stays at its default (yes): birdc is kept for manual debugging, even though a
+# consumer that speaks the control socket directly has no use for it. ncurses-static/
+# readline-static provide the .a archives birdc's build links against instead of the normal
+# shared libncursesw.so/libreadline.so.
+#
+# BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
+# modified GPL work, with the disclosure that carries.
 FROM alpine:3.24 AS builder
 ARG BIRD_REV=v2.19.2
-COPY patches/ /patches/
 RUN apk add --no-cache \
         build-base musl-dev linux-headers \
         git m4 perl autoconf flex bison \
@@ -33,7 +33,6 @@ RUN apk add --no-cache \
     && git clone https://github.com/CZ-NIC/bird.git /src \
     && git -C /src checkout "$BIRD_REV" \
     && cd /src \
-    && for p in /patches/*.patch; do git apply "$p"; done \
     && autoreconf \
     && ./configure --disable-libssh \
     && make LDFLAGS=-static -j"$(nproc)" \
