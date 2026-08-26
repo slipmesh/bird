@@ -2,10 +2,10 @@
 # ghcr.io/slipmesh/bird, tagged with the release version and `latest` - mirrors
 # slipmesh/operators' and slipmesh/helm's own release workflows.
 #
-# Unlike slipmesh/operators (Rust, cross-compiled via cargo-zigbuild because a full rustc build
-# segfaults under QEMU for a non-native --platform), this is a small C build - buildx's own
-# multi-platform support (QEMU-emulated for the non-native leg) handles it fine in one step, no
-# per-arch build-then-merge dance needed.
+# Nothing is emulated: each arch is compiled on a runner of that architecture
+# (ubuntu-24.04-arm for arm64, free for public repositories), pushed by digest, and the two are
+# combined into one multi-arch tag afterwards. BIRD is a small C build that QEMU would survive,
+# but emulation costs several times the wall clock for no benefit once native runners exist.
 name: Release image
 
 on:
@@ -17,12 +17,59 @@ permissions:
   packages: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -37,12 +84,11 @@ jobs:
         id: tag
         run: echo "image_tag=${GITHUB_REF_NAME//+/-}" >> "$GITHUB_OUTPUT"
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.image_tag }}
-            ghcr.io/${{ github.repository }}:latest
+      - name: Combine both arches into one multi-arch tag
+        working-directory: /tmp/digests
+        run: |
+          image=ghcr.io/${{ github.repository }}
+          docker buildx imagetools create \
+            -t "$image:${{ steps.tag.outputs.image_tag }}" \
+            -t "$image:latest" \
+            $(printf "$image@sha256:%s " *)
