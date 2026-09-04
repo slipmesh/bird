@@ -32,10 +32,8 @@ Built from `github.com/CZ-NIC/bird`, an official mirror of the real upstream
 commit per tag). Used instead of cloning gitlab.nic.cz directly because that 403s from GitHub
 Actions' own IP range specifically, separately from
 `bird.nic.cz`'s tarball downloads 403ing unconditionally for everyone. Pinned to a tag (see
-`BIRD_REV` in the `Dockerfile`), currently `v3.3.2` - the current 3.x release, which by
-upstream's own "Merged 2.19" in 3.3.0 is not behind the 2.19.2 it replaces. The RFC 8950
-(extended next-hop) underlay redesign was verified against 2.19.2 and has not been re-verified
-on 3.x.
+`BIRD_REV` in the `Dockerfile`), currently `v2.19.2` - the latest 2.x release, and the version
+verified against the RFC 8950 (extended next-hop) underlay redesign.
 
 `--disable-libssh` at configure time: BIRD's only use for libssh is RPKI-over-SSH transport, which
 this project's BIRD config never uses. `ncurses-static`/`readline-static` (Alpine packages) let
