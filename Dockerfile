@@ -25,7 +25,7 @@
 # Staying on the 2.x line for now. v3.3.2 configures, compiles and links statically here without
 # complaint, but upstream's own `make check` then dies in filter_test with SIGILL (make reports
 # Error 132) while tree_test and trie_test from the same directory pass. Undiagnosed - moving to
-# 3.x is a task of its own, not a step inside a Talos bump.
+# 3.x is a task of its own, with room to diagnose that, not a line to flip in passing.
 #
 # BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
 # modified GPL work, with the disclosure that carries.
