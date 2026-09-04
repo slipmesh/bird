@@ -5,20 +5,14 @@
 #
 # Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
 # organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
-# commit hash for v3.3.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
+# commit hash for v2.19.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
 # GitHub Actions' own IP range - bird.nic.cz's tarball downloads 403 unconditionally, and
 # gitlab.nic.cz apparently blocks
 # at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
-# guessed). v3.3.2 is the current 3.x release; 3.3.0 carries upstream's "Merged 2.19", so it
-# is not behind the 2.19.2 this replaces. The RFC 8950 (extended next-hop) underlay redesign
-# was verified on a testbed against 2.19.2 and has not been re-verified on 3.x - that check
-# belongs on a node before this reaches the fleet.
-#
-# 3.x has no --enable-pthreads: threads are mandatory, and configure puts -pthread into both
-# CFLAGS and LDFLAGS. `make LDFLAGS=-static` below replaces the latter wholesale, dropping
-# -pthread from the link, which costs nothing under musl - its pthreads live in libc.
+# guessed). v2.19.2 is the latest 2.x release and the version verified against the RFC 8950
+# (extended next-hop) underlay redesign on a real testbed.
 #
 # --disable-libssh: only used by BIRD's optional RPKI-over-SSH transport, which this project
 # doesn't use (no RPKI protocol anywhere in slipmesh's BIRD config) - dropping it removes libssh
@@ -28,10 +22,15 @@
 # readline-static provide the .a archives birdc's build links against instead of the normal
 # shared libncursesw.so/libreadline.so.
 #
+# Staying on the 2.x line for now. v3.3.2 configures, compiles and links statically here without
+# complaint, but upstream's own `make check` then dies in filter_test with SIGILL (make reports
+# Error 132) while tree_test and trie_test from the same directory pass. Undiagnosed - moving to
+# 3.x is a task of its own, with room to diagnose that, not a line to flip in passing.
+#
 # BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
 # modified GPL work, with the disclosure that carries.
 FROM alpine:3.24 AS builder
-ARG BIRD_REV=v3.3.2
+ARG BIRD_REV=v2.19.2
 RUN apk add --no-cache \
         build-base musl-dev linux-headers \
         git m4 perl autoconf flex bison \
