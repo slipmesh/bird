@@ -35,6 +35,10 @@ jobs:
           docker run --rm -v /tmp/bird-ci:/etc/bird --entrypoint /bird bird:ci \
             -p -c /etc/bird/bird.conf
 
+      - name: Smoke test - bird_exporter runs
+        run: |
+          docker run --rm --entrypoint /bird_exporter bird:ci -version
+
       - name: Smoke test - birdc runs (expected to fail to connect, not to crash)
         run: |
           docker run --rm --entrypoint /birdc bird:ci -s /nonexistent 2>&1 | tee /tmp/birdc.out

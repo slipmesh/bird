@@ -1,7 +1,14 @@
 # bird
 
 A fully statically-linked `bird`/`birdc` build, packaged as a minimal `scratch` container image
-(`ghcr.io/slipmesh/bird`).
+(`ghcr.io/slipmesh/bird`). It also carries `bird_exporter`, which reads the same control socket
+and serves BIRD's protocol state to Prometheus.
+
+Two upstreams, two licences, neither modified: BIRD is GPL, [`czerwonk/bird_exporter`] is MIT.
+The exporter ships here rather than as an image of its own because it has to reach BIRD's control
+socket, and that socket only exists beside the daemon.
+
+[`czerwonk/bird_exporter`]: https://github.com/czerwonk/bird_exporter
 
 ## Why this exists
 

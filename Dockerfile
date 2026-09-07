@@ -48,6 +48,12 @@
 #
 # BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
 # modified GPL work, with the disclosure that carries.
+#
+# The image also carries czerwonk/bird_exporter (MIT), which reads BIRD's own control socket and
+# serves its protocol state to Prometheus. It ships here rather than as an image of its own
+# because it has to reach that socket, and the socket only exists next to the daemon: whatever
+# runs it is already in this filesystem. Two upstreams, two licences - BIRD stays GPL, the
+# exporter is MIT, and neither is modified.
 FROM ubuntu:26.04 AS builder
 ARG BIRD_REV=v3.3.2
 RUN apt-get update \
@@ -74,6 +80,18 @@ RUN apt-get update \
     && file bird | grep -q 'static' \
     && file birdc | grep -q 'static'
 
+# CGO off is what makes the result runnable in `scratch`: with it on, net and os/user link
+# against the builder's glibc and the binary needs files this image does not have.
+FROM golang:1.27.1-trixie AS exporter
+ARG BIRD_EXPORTER_REV=v1.6.2
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends file \
+    && rm -rf /var/lib/apt/lists/* \
+    && CGO_ENABLED=0 go install github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV} \
+    && mv "$(go env GOPATH)/bin/bird_exporter" /bird_exporter \
+    && file /bird_exporter | grep -q 'statically linked'
+
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /
+COPY --from=exporter /bird_exporter /
 ENTRYPOINT ["/bird"]
