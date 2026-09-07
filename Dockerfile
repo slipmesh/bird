@@ -5,14 +5,13 @@
 #
 # Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
 # organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
-# commit hash for v2.19.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
+# commit hash for v3.3.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
 # GitHub Actions' own IP range - bird.nic.cz's tarball downloads 403 unconditionally, and
 # gitlab.nic.cz apparently blocks
 # at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
-# guessed). v2.19.2 is the latest 2.x release and the version verified against the RFC 8950
-# (extended next-hop) underlay redesign on a real testbed.
+# guessed).
 #
 # --disable-libssh: only used by BIRD's optional RPKI-over-SSH transport, which this project
 # doesn't use (no RPKI protocol anywhere in slipmesh's BIRD config) - dropping it removes libssh
@@ -22,19 +21,39 @@
 # readline-static provide the .a archives birdc's build links against instead of the normal
 # shared libncursesw.so/libreadline.so.
 #
-# Staying on the 2.x line for now. v3.3.2 configures, compiles and links statically here without
-# complaint, but upstream's own `make check` then dies in filter_test with SIGILL (make reports
-# Error 132) while tree_test and trie_test from the same directory pass. Undiagnosed - moving to
-# 3.x is a task of its own, with room to diagnose that, not a line to flip in passing.
+# Built against glibc rather than musl, which is why the builder is not Alpine. BIRD 3 does not
+# survive a static musl build: upstream's own `make check` dies in filter_test with SIGILL, on
+# amd64 and arm64 alike and natively on each. Isolated by varying one thing at a time - the same
+# v3.3.2 passes all 31 tests against glibc, dynamically and statically linked both, while a musl
+# build of the same tree crashes in lib/hash_test's t_spinhash_basic, ten runs out of ten. The
+# crash lands in BIRD's own page allocator, reached from rcu_read_lock() through
+# page_fill_hot(), which is the path 3.3.2 introduced ("Allocator: Pre-fill hot pages when
+# entering RCU critical section" in its NEWS), and the faulting thread moves between runs -
+# memory corruption rather than a failed assertion. Ruled out on the way: the release itself,
+# static linking, the architecture, QEMU (both CI legs run native), musl's default thread stack
+# size (BIRD gives its own threads 64K explicitly), and a late-initialized page_size.
+#
+# glibc asks one thing in return: NSS. getaddrinfo, getpwnam and getgrnam resolve through
+# backends glibc used to dlopen, which a static binary cannot carry - hence the linker warnings
+# this build prints. Since glibc 2.34 the files and dns backends live inside libc itself, so a
+# static binary resolves names given nothing but /etc/resolv.conf, verified in an empty chroot
+# on glibc 2.43. None of those calls is reachable here regardless: getaddrinfo serves
+# `log ... udp <hostname>` and the RPKI protocol, getpwnam/getgrnam serve -u/-g, and this
+# project logs to stderr, configures no RPKI, and starts bird as `bird -f -c <conf> -s <sock>`.
+#
+# Protocols stay at configure's default of all. Trimming them to the four slipmesh uses breaks
+# upstream's suite - filter/test.conf reads babel_metric, so filter_test aborts outright when
+# babel is left out - and the `make check` below is worth more than the 0.7 MB it would save.
 #
 # BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
 # modified GPL work, with the disclosure that carries.
-FROM alpine:3.24 AS builder
-ARG BIRD_REV=v2.19.2
-RUN apk add --no-cache \
-        build-base musl-dev linux-headers \
-        git m4 perl autoconf flex bison \
-        ncurses-static readline-static \
+FROM ubuntu:26.04 AS builder
+ARG BIRD_REV=v3.3.2
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates file git m4 perl autoconf flex bison \
+        libncurses-dev libreadline-dev \
     && git clone https://github.com/CZ-NIC/bird.git /src \
     && git -C /src checkout "$BIRD_REV" \
     && cd /src \
@@ -42,17 +61,15 @@ RUN apk add --no-cache \
     && ./configure --disable-libssh \
     && make LDFLAGS=-static -j"$(nproc)" \
     # BIRD's own unit test suite (lib/nest/filter data-structure and parser tests) - fails the
-    # build loudly if this specific static-musl toolchain miscompiles something the upstream test
-    # suite would catch, not just "it links".
+    # build loudly if this specific static-glibc toolchain miscompiles something the upstream
+    # test suite would catch, not just "it links". It is also what caught musl: see above.
     && make LDFLAGS=-static -j"$(nproc)" check \
     && strip bird birdc \
     # Static-link sanity check - fails the build loudly instead of silently shipping a
     # dynamically-linked binary that happens to still run in this builder stage's own userland.
-    # `file`, not `ldd`: musl's static-PIE binaries still carry a PT_INTERP pointing at
-    # ld-musl-*.so.1 (self-relocation, not a real runtime dependency on an external .so), which
-    # makes `ldd` misreport them as dynamically linked even though they run standalone with zero
-    # files beyond themselves - verified empirically by running the built binary in a `scratch`
-    # image with nothing else in it.
+    # `file` reads the ELF itself and says `statically linked` outright, where `ldd` answers in
+    # wording that varies by libc. Verified by running both binaries in an empty chroot holding
+    # nothing but them.
     && file bird | grep -q 'static' \
     && file birdc | grep -q 'static'
 
