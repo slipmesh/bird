@@ -59,7 +59,7 @@ ARG BIRD_REV=v3.3.2
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         build-essential \
-        ca-certificates file git m4 perl autoconf flex bison \
+        ca-certificates git m4 perl autoconf flex bison \
         libncurses-dev libreadline-dev \
     && rm -rf /var/lib/apt/lists/* \
     && git clone --depth 1 --branch "$BIRD_REV" https://github.com/CZ-NIC/bird.git /src \
@@ -74,18 +74,21 @@ RUN apt-get update \
     && strip bird birdc \
     # Static-link sanity check - fails the build loudly instead of silently shipping a
     # dynamically-linked binary that happens to still run in this builder stage's own userland.
-    # `file` reads the ELF itself and says `statically linked` outright, where `ldd` answers in
-    # wording that varies by libc. Verified by running both binaries in an empty chroot holding
-    # nothing but them.
-    && file bird | grep -q 'static' \
-    && file birdc | grep -q 'static'
+    # An empty DT_NEEDED is the property that matters: nothing to load at startup is exactly what
+    # lets a binary run in `scratch`. Read out of the ELF, so no architecture or libc can change
+    # the answer and nothing is executed to get it - `ldd` on glibc runs the binary through the
+    # loader, and its wording and exit status differ per libc. Nor is PT_INTERP the thing to look
+    # at: a static-PIE binary can carry one and still depend on nothing, which is how musl's used
+    # to read. Verified by running both binaries in an empty chroot holding nothing but them.
+    && ! readelf -d bird | grep -q NEEDED \
+    && ! readelf -d birdc | grep -q NEEDED
 
 # CGO off is what makes the result runnable in `scratch`: with it on, net and os/user link
 # against the builder's glibc and the binary needs files this image does not have.
 FROM golang:1.27.1-trixie AS exporter
 ARG BIRD_EXPORTER_REV=v1.6.2
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends file \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends binutils \
     && rm -rf /var/lib/apt/lists/* \
     # Upstream's own release flags (.goreleaser.yml). `-X main.version` is not cosmetic: the
     # variable is a literal in the source and lags its own tag - at v1.6.2 it still reads
@@ -99,7 +102,7 @@ RUN apt-get update \
     && mkdir -p /licenses \
     && cp "$(go env GOMODCACHE)/github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV}/LICENSE" \
         /licenses/bird_exporter.LICENSE \
-    && file /bird_exporter | grep -q 'static'
+    && ! readelf -d /bird_exporter | grep -q NEEDED
 
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /

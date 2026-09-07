@@ -53,9 +53,10 @@ the full isolation and what it rules out.
 this project's BIRD config never uses. `libncurses-dev`/`libreadline-dev` provide the `.a`
 archives `birdc`'s interactive line editing links against instead of pulling in
 `libncursesw.so`/`libreadline.so`. The build also runs BIRD's own unit test suite (`make check`)
-and fails loudly if either binary comes out dynamically linked, checked via `file` rather than
-`ldd`, whose wording varies by libc; both binaries were verified by running them in an empty
-chroot holding nothing else.
+and fails loudly if any binary comes out with a `DT_NEEDED` entry - nothing to load at startup is
+exactly what lets one run in `scratch`. Read out of the ELF with `readelf`, so nothing is executed
+to find out and no libc or architecture changes the answer; `ldd` on glibc runs the binary through
+the loader. All three were verified by running them in an empty chroot holding nothing else.
 
 ## Versioning
 
