@@ -32,17 +32,20 @@ Built from `github.com/CZ-NIC/bird`, an official mirror of the real upstream
 commit per tag). Used instead of cloning gitlab.nic.cz directly because that 403s from GitHub
 Actions' own IP range specifically, separately from
 `bird.nic.cz`'s tarball downloads 403ing unconditionally for everyone. Pinned to a tag (see
-`BIRD_REV` in the `Dockerfile`), currently `v2.19.2` - the latest 2.x release, and the version
-verified against the RFC 8950 (extended next-hop) underlay redesign.
+`BIRD_REV` in the `Dockerfile`), currently `v3.3.2`.
+
+The builder is an Ubuntu image rather than Alpine, because BIRD 3 does not survive a static musl
+build - upstream's own `make check` dies in `filter_test` with SIGILL there, on both
+architectures, while the same release passes all 31 tests against glibc. The `Dockerfile` carries
+the full isolation and what it rules out.
 
 `--disable-libssh` at configure time: BIRD's only use for libssh is RPKI-over-SSH transport, which
-this project's BIRD config never uses. `ncurses-static`/`readline-static` (Alpine packages) let
-`birdc`'s interactive line editing link statically instead of pulling in `libncursesw.so`/
-`libreadline.so`. The build also runs BIRD's own unit test suite (`make check`) and fails loudly
-if either binary comes out dynamically linked (checked via `file`, not `ldd` - musl's static-PIE
-binaries carry a `PT_INTERP` pointing at `ld-musl-*.so.1` for self-relocation, which `ldd`
-misreports as a real dynamic dependency even though the binary runs standalone; verified by
-actually running the built `scratch` image's binaries).
+this project's BIRD config never uses. `libncurses-dev`/`libreadline-dev` provide the `.a`
+archives `birdc`'s interactive line editing links against instead of pulling in
+`libncursesw.so`/`libreadline.so`. The build also runs BIRD's own unit test suite (`make check`)
+and fails loudly if either binary comes out dynamically linked, checked via `file` rather than
+`ldd`, whose wording varies by libc; both binaries were verified by running them in an empty
+chroot holding nothing else.
 
 ## Versioning
 
