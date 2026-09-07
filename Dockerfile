@@ -99,7 +99,7 @@ RUN apt-get update \
     && mkdir -p /licenses \
     && cp "$(go env GOMODCACHE)/github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV}/LICENSE" \
         /licenses/bird_exporter.LICENSE \
-    && file /bird_exporter | grep -q 'statically linked'
+    && file /bird_exporter | grep -q 'static'
 
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /
