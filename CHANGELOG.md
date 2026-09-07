@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0+bird3.3.2] - 2026-09-07
+
+### Added ✨
+
+- Ship bird_exporter alongside bird
+
+### Changed 🔧
+
+- Assert an empty DT_NEEDED instead of reading file's prose
+
+### Fixed 🐛
+
+- Build the exporter with upstream's release flags
+- Ship both licence texts in the image
+- Check the exporter for static linking the way the other two are checked
+
 ## [0.2.0+bird3.3.2] - 2026-09-07
 
 ### Added ✨
