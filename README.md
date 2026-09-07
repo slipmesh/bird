@@ -5,6 +5,8 @@ A fully statically-linked `bird`/`birdc` build, packaged as a minimal `scratch` 
 and serves BIRD's protocol state to Prometheus.
 
 Two upstreams, two licences, neither modified: BIRD is GPL, [`czerwonk/bird_exporter`] is MIT.
+Both texts ship in the image under `/licenses/`, since a `scratch` image is the whole of what is
+distributed and a notice left in this repository would reach nobody.
 The exporter ships here rather than as an image of its own because it has to reach BIRD's control
 socket, and that socket only exists beside the daemon.
 

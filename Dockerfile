@@ -94,9 +94,19 @@ RUN apt-get update \
         -ldflags "-s -w -X main.version=${BIRD_EXPORTER_REV#v}" \
         github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV} \
     && mv "$(go env GOPATH)/bin/bird_exporter" /bird_exporter \
+    # Taken from the module cache rather than fetched separately, so the notice shipped is the
+    # one belonging to the source this binary was built from.
+    && mkdir -p /licenses \
+    && cp "$(go env GOMODCACHE)/github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV}/LICENSE" \
+        /licenses/bird_exporter.LICENSE \
     && file /bird_exporter | grep -q 'statically linked'
 
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /
 COPY --from=exporter /bird_exporter /
+# Both licences travel with the binaries they cover: the GPL requires it of BIRD, and the MIT
+# permission notice has to accompany copies of the exporter. A `scratch` image is the whole of
+# what is distributed, so a notice left behind in the repository would not be conveyed at all.
+COPY --from=exporter /licenses/bird_exporter.LICENSE /licenses/
+COPY COPYING /licenses/bird.COPYING
 ENTRYPOINT ["/bird"]
