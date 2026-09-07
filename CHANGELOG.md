@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0+bird3.3.2] - 2026-09-07
+
+### Added ✨
+
+- Build BIRD 3.3.2 against glibc
+
+### Documentation 📚
+
+- Drop the consumer's name from the 3.x note
+
+### Fixed 🐛
+
+- Name the packages the builder actually installs, and clone only the tag
+
+### Reverts ⏪
+
+- Build BIRD 2.19.2 again
+
 ## [0.1.3+bird3.3.2] - 2026-09-04
 
 ### Added ✨
