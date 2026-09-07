@@ -11,14 +11,15 @@
 # at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
 #
 # BIRD_REV is a tag, verified to actually exist on gitlab.nic.cz before being pinned here (not
-# guessed).
+# guessed). A tag rather than a commit is load-bearing: the clone below is shallow, and --branch
+# resolves tags and branches only.
 #
 # --disable-libssh: only used by BIRD's optional RPKI-over-SSH transport, which this project
 # doesn't use (no RPKI protocol anywhere in slipmesh's BIRD config) - dropping it removes libssh
 # from the dependency list entirely rather than needing to statically link it too.
 # --enable-client stays at its default (yes): birdc is kept for manual debugging, even though a
-# consumer that speaks the control socket directly has no use for it. ncurses-static/
-# readline-static provide the .a archives birdc's build links against instead of the normal
+# consumer that speaks the control socket directly has no use for it. libncurses-dev and
+# libreadline-dev carry the .a archives birdc's build links against instead of the normal
 # shared libncursesw.so/libreadline.so.
 #
 # Built against glibc rather than musl, which is why the builder is not Alpine. BIRD 3 does not
@@ -54,8 +55,8 @@ RUN apt-get update \
         build-essential \
         ca-certificates file git m4 perl autoconf flex bison \
         libncurses-dev libreadline-dev \
-    && git clone https://github.com/CZ-NIC/bird.git /src \
-    && git -C /src checkout "$BIRD_REV" \
+    && rm -rf /var/lib/apt/lists/* \
+    && git clone --depth 1 --branch "$BIRD_REV" https://github.com/CZ-NIC/bird.git /src \
     && cd /src \
     && autoreconf \
     && ./configure --disable-libssh \
