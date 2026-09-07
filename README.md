@@ -30,7 +30,8 @@ socket.
 
 ## What's in the image
 
-Just two binaries at `/`: `bird` (the daemon) and `birdc` (the interactive control-socket client,
+Three binaries at `/`: `bird` (the daemon), `bird_exporter` (its Prometheus endpoint), and
+`birdc` (the interactive control-socket client,
 kept for manual `kubectl exec` debugging - `router` itself talks to the control socket directly,
 not through `birdc`).
 

@@ -87,7 +87,12 @@ ARG BIRD_EXPORTER_REV=v1.6.2
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends file \
     && rm -rf /var/lib/apt/lists/* \
-    && CGO_ENABLED=0 go install github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV} \
+    # Upstream's own release flags (.goreleaser.yml). `-X main.version` is not cosmetic: the
+    # variable is a literal in the source and lags its own tag - at v1.6.2 it still reads
+    # "1.6.1" - so a build without it ships a binary that misreports which version it is.
+    && CGO_ENABLED=0 go install -trimpath \
+        -ldflags "-s -w -X main.version=${BIRD_EXPORTER_REV#v}" \
+        github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV} \
     && mv "$(go env GOPATH)/bin/bird_exporter" /bird_exporter \
     && file /bird_exporter | grep -q 'statically linked'
 
