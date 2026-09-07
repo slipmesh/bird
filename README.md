@@ -1,7 +1,16 @@
 # bird
 
 A fully statically-linked `bird`/`birdc` build, packaged as a minimal `scratch` container image
-(`ghcr.io/slipmesh/bird`).
+(`ghcr.io/slipmesh/bird`). It also carries `bird_exporter`, which reads the same control socket
+and serves BIRD's protocol state to Prometheus.
+
+Two upstreams, two licences, neither modified: BIRD is GPL, [`czerwonk/bird_exporter`] is MIT.
+Both texts ship in the image under `/licenses/`, since a `scratch` image is the whole of what is
+distributed and a notice left in this repository would reach nobody.
+The exporter ships here rather than as an image of its own because it has to reach BIRD's control
+socket, and that socket only exists beside the daemon.
+
+[`czerwonk/bird_exporter`]: https://github.com/czerwonk/bird_exporter
 
 ## Why this exists
 
@@ -23,7 +32,8 @@ socket.
 
 ## What's in the image
 
-Just two binaries at `/`: `bird` (the daemon) and `birdc` (the interactive control-socket client,
+Three binaries at `/`: `bird` (the daemon), `bird_exporter` (its Prometheus endpoint), and
+`birdc` (the interactive control-socket client,
 kept for manual `kubectl exec` debugging - `router` itself talks to the control socket directly,
 not through `birdc`).
 
@@ -43,9 +53,10 @@ the full isolation and what it rules out.
 this project's BIRD config never uses. `libncurses-dev`/`libreadline-dev` provide the `.a`
 archives `birdc`'s interactive line editing links against instead of pulling in
 `libncursesw.so`/`libreadline.so`. The build also runs BIRD's own unit test suite (`make check`)
-and fails loudly if either binary comes out dynamically linked, checked via `file` rather than
-`ldd`, whose wording varies by libc; both binaries were verified by running them in an empty
-chroot holding nothing else.
+and fails loudly if any binary comes out with a `DT_NEEDED` entry - nothing to load at startup is
+exactly what lets one run in `scratch`. Read out of the ELF with `readelf`, so nothing is executed
+to find out and no libc or architecture changes the answer; `ldd` on glibc runs the binary through
+the loader. All three were verified by running them in an empty chroot holding nothing else.
 
 ## Versioning
 

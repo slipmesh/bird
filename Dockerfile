@@ -48,12 +48,18 @@
 #
 # BIRD is built from vanilla upstream, unmodified. Keep it that way: a local patch makes this a
 # modified GPL work, with the disclosure that carries.
+#
+# The image also carries czerwonk/bird_exporter (MIT), which reads BIRD's own control socket and
+# serves its protocol state to Prometheus. It ships here rather than as an image of its own
+# because it has to reach that socket, and the socket only exists next to the daemon: whatever
+# runs it is already in this filesystem. Two upstreams, two licences - BIRD stays GPL, the
+# exporter is MIT, and neither is modified.
 FROM ubuntu:26.04 AS builder
 ARG BIRD_REV=v3.3.2
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         build-essential \
-        ca-certificates file git m4 perl autoconf flex bison \
+        ca-certificates git m4 perl autoconf flex bison \
         libncurses-dev libreadline-dev \
     && rm -rf /var/lib/apt/lists/* \
     && git clone --depth 1 --branch "$BIRD_REV" https://github.com/CZ-NIC/bird.git /src \
@@ -68,12 +74,42 @@ RUN apt-get update \
     && strip bird birdc \
     # Static-link sanity check - fails the build loudly instead of silently shipping a
     # dynamically-linked binary that happens to still run in this builder stage's own userland.
-    # `file` reads the ELF itself and says `statically linked` outright, where `ldd` answers in
-    # wording that varies by libc. Verified by running both binaries in an empty chroot holding
-    # nothing but them.
-    && file bird | grep -q 'static' \
-    && file birdc | grep -q 'static'
+    # An empty DT_NEEDED is the property that matters: nothing to load at startup is exactly what
+    # lets a binary run in `scratch`. Read out of the ELF, so no architecture or libc can change
+    # the answer and nothing is executed to get it - `ldd` on glibc runs the binary through the
+    # loader, and its wording and exit status differ per libc. Nor is PT_INTERP the thing to look
+    # at: a static-PIE binary can carry one and still depend on nothing, which is how musl's used
+    # to read. Verified by running both binaries in an empty chroot holding nothing but them.
+    && ! readelf -d bird | grep -q NEEDED \
+    && ! readelf -d birdc | grep -q NEEDED
+
+# CGO off is what makes the result runnable in `scratch`: with it on, net and os/user link
+# against the builder's glibc and the binary needs files this image does not have.
+FROM golang:1.27.1-trixie AS exporter
+ARG BIRD_EXPORTER_REV=v1.6.2
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends binutils \
+    && rm -rf /var/lib/apt/lists/* \
+    # Upstream's own release flags (.goreleaser.yml). `-X main.version` is not cosmetic: the
+    # variable is a literal in the source and lags its own tag - at v1.6.2 it still reads
+    # "1.6.1" - so a build without it ships a binary that misreports which version it is.
+    && CGO_ENABLED=0 go install -trimpath \
+        -ldflags "-s -w -X main.version=${BIRD_EXPORTER_REV#v}" \
+        github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV} \
+    && mv "$(go env GOPATH)/bin/bird_exporter" /bird_exporter \
+    # Taken from the module cache rather than fetched separately, so the notice shipped is the
+    # one belonging to the source this binary was built from.
+    && mkdir -p /licenses \
+    && cp "$(go env GOMODCACHE)/github.com/czerwonk/bird_exporter@${BIRD_EXPORTER_REV}/LICENSE" \
+        /licenses/bird_exporter.LICENSE \
+    && ! readelf -d /bird_exporter | grep -q NEEDED
 
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /
+COPY --from=exporter /bird_exporter /
+# Both licences travel with the binaries they cover: the GPL requires it of BIRD, and the MIT
+# permission notice has to accompany copies of the exporter. A `scratch` image is the whole of
+# what is distributed, so a notice left behind in the repository would not be conveyed at all.
+COPY --from=exporter /licenses/bird_exporter.LICENSE /licenses/
+COPY COPYING /licenses/bird.COPYING
 ENTRYPOINT ["/bird"]
