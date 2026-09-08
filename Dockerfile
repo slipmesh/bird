@@ -52,7 +52,7 @@
 # The image also carries czerwonk/bird_exporter (MIT), which reads BIRD's own control socket and
 # serves its protocol state to Prometheus. It ships here rather than as an image of its own
 # because it has to reach that socket, and the socket only exists next to the daemon: whatever
-# runs it is already in this filesystem. Two upstreams, two licences - BIRD stays GPL, the
+# runs it is already in this filesystem. Two upstreams, two licenses - BIRD stays GPL, the
 # exporter is MIT, and neither is modified.
 FROM ubuntu:26.04 AS builder
 ARG BIRD_REV=v3.3.2
@@ -107,7 +107,7 @@ RUN apt-get update \
 FROM scratch
 COPY --from=builder /src/bird /src/birdc /
 COPY --from=exporter /bird_exporter /
-# Both licences travel with the binaries they cover: the GPL requires it of BIRD, and the MIT
+# Both licenses travel with the binaries they cover: the GPL requires it of BIRD, and the MIT
 # permission notice has to accompany copies of the exporter. A `scratch` image is the whole of
 # what is distributed, so a notice left behind in the repository would not be conveyed at all.
 COPY --from=exporter /licenses/bird_exporter.LICENSE /licenses/
