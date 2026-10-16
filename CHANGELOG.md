@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.1+bird3.3.3] - 2026-10-16
+
+### Added ✨
+
+- Build BIRD 3.3.3 and bird_exporter 1.7.0
+
+### Style 🎨
+
+- Spell it license, as the rest of the repo does
+
 ## [0.3.0+bird3.3.2] - 2026-09-07
 
 ### Added ✨
