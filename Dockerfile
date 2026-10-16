@@ -5,7 +5,7 @@
 #
 # Source is cloned from github.com/CZ-NIC/bird - an official mirror maintained by the same
 # organization as the real upstream (gitlab.nic.cz/labs/bird), verified byte-identical (same
-# commit hash for v3.3.2 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
+# commit hash for v3.3.3 on both). Cloning gitlab.nic.cz directly instead 403s specifically from
 # GitHub Actions' own IP range - bird.nic.cz's tarball downloads 403 unconditionally, and
 # gitlab.nic.cz apparently blocks
 # at least some cloud/CI IP ranges. github.com obviously isn't blocked from GitHub's own runners.
@@ -55,7 +55,7 @@
 # runs it is already in this filesystem. Two upstreams, two licenses - BIRD stays GPL, the
 # exporter is MIT, and neither is modified.
 FROM ubuntu:26.04 AS builder
-ARG BIRD_REV=v3.3.2
+ARG BIRD_REV=v3.3.3
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         build-essential \
@@ -85,8 +85,8 @@ RUN apt-get update \
 
 # CGO off is what makes the result runnable in `scratch`: with it on, net and os/user link
 # against the builder's glibc and the binary needs files this image does not have.
-FROM golang:1.27.1-trixie AS exporter
-ARG BIRD_EXPORTER_REV=v1.6.2
+FROM golang:1.27.2-trixie AS exporter
+ARG BIRD_EXPORTER_REV=v1.7.0
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends binutils \
     && rm -rf /var/lib/apt/lists/* \

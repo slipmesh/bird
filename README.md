@@ -42,7 +42,7 @@ Built from `github.com/CZ-NIC/bird`, an official mirror of the real upstream
 commit per tag). Used instead of cloning gitlab.nic.cz directly because that 403s from GitHub
 Actions' own IP range specifically, separately from
 `bird.nic.cz`'s tarball downloads 403ing unconditionally for everyone. Pinned to a tag (see
-`BIRD_REV` in the `Dockerfile`), currently `v3.3.2`.
+`BIRD_REV` in the `Dockerfile`), currently `v3.3.3`.
 
 The builder is an Ubuntu image rather than Alpine, because BIRD 3 does not survive a static musl
 build - upstream's own `make check` dies in `filter_test` with SIGILL there, on both
